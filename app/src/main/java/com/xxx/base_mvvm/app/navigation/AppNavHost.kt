@@ -4,8 +4,8 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
-import com.xxx.base_mvvm.feature.auth.navigation.AUTH_ROUTE
-import com.xxx.base_mvvm.feature.auth.navigation.authScreen
+import com.xxx.base_mvvm.feature.auth.navigation.AUTH_GRAPH_ROUTE
+import com.xxx.base_mvvm.feature.auth.navigation.authGraph
 import com.xxx.base_mvvm.feature.auth.navigation.navigateToAuth
 import com.xxx.base_mvvm.feature.detail.navigation.detailScreen
 import com.xxx.base_mvvm.feature.detail.navigation.navigateToDetail
@@ -18,23 +18,29 @@ import com.xxx.base_mvvm.feature.profile.navigation.profileScreen
 @Composable
 fun AppNavHost(
     navController: NavHostController = rememberNavController(),
-    startDestination: String = AUTH_ROUTE
+    startDestination: String = AUTH_GRAPH_ROUTE
 ) {
     NavHost(navController = navController, startDestination = startDestination) {
 
-        authScreen(
-            onLoginSuccess = { navController.navigateToHome() }
+        // ── Auth (nested graph: login ↔ register navigate local) ───────────
+        authGraph(
+            navController     = navController,
+            onLoginSuccess    = { navController.navigateToHome() },
+            onRegisterSuccess = { navController.navigateToHome() }
         )
 
+        // ── Home ───────────────────────────────────────────────────────────
         homeScreen(
             onNavigateToDetail  = { userId -> navController.navigateToDetail(userId) },
             onNavigateToProfile = { navController.navigateToProfile() }
         )
 
+        // ── Detail ─────────────────────────────────────────────────────────
         detailScreen(
             onNavigateBack = { navController.popBackStack() }
         )
 
+        // ── Profile ────────────────────────────────────────────────────────
         profileScreen(
             onLogout       = { navController.navigateToAuth() },
             onNavigateBack = { navController.popBackStack() }

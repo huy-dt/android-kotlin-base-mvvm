@@ -3,6 +3,7 @@ package com.xxx.base_mvvm.core.database.di
 import android.content.Context
 import androidx.room.Room
 import com.xxx.base_mvvm.core.database.AppDatabase
+import com.xxx.base_mvvm.core.database.dao.AccountDao
 import com.xxx.base_mvvm.core.database.dao.UserDao
 import dagger.Module
 import dagger.Provides
@@ -21,6 +22,6 @@ object DatabaseModule {
             .fallbackToDestructiveMigration()
             .build()
 
-    @Provides
-    fun provideUserDao(db: AppDatabase): UserDao = db.userDao()
+    @Provides fun provideUserDao(db: AppDatabase): UserDao       = db.userDao()
+    @Provides fun provideAccountDao(db: AppDatabase): AccountDao = db.accountDao()
 }

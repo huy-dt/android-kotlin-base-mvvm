@@ -28,23 +28,25 @@ class LoginViewModel @Inject constructor(
     private val _uiEvent = Channel<LoginUiEvent>()
     val uiEvent = _uiEvent.receiveAsFlow()
 
-    fun onEmailChange(email: String) = _uiState.update { it.copy(email = email, emailError = null) }
-    fun onPasswordChange(pw: String)  = _uiState.update { it.copy(password = pw, passwordError = null) }
+    fun onEmailChange(email: String) =
+        _uiState.update { it.copy(email = email, emailError = null, error = null) }
+
+    fun onPasswordChange(pw: String) =
+        _uiState.update { it.copy(password = pw, passwordError = null, error = null) }
 
     fun onLogin() {
-        val state = _uiState.value
-        if (!state.isFormValid) {
-            _uiState.update {
-                it.copy(
-                    emailError    = if (it.email.isBlank()) "Email không được trống" else null,
-                    passwordError = if (it.password.length < 6) "Mật khẩu tối thiểu 6 ký tự" else null
-                )
-            }
+        val s = _uiState.value
+        val emailErr    = if (s.email.isBlank()) "Email không được trống" else null
+        val passwordErr = if (s.password.length < 6) "Tối thiểu 6 ký tự" else null
+
+        if (emailErr != null || passwordErr != null) {
+            _uiState.update { it.copy(emailError = emailErr, passwordError = passwordErr) }
             return
         }
+
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
-            when (val result = loginUseCase(LoginParams(state.email, state.password))) {
+            when (val result = loginUseCase(LoginParams(s.email.trim(), s.password))) {
                 is Result.Success -> _uiEvent.send(LoginUiEvent.NavigateToHome)
                 is Result.Error   -> {
                     _uiState.update { it.copy(isLoading = false, error = result.message) }
@@ -53,5 +55,9 @@ class LoginViewModel @Inject constructor(
                 is Result.Loading -> Unit
             }
         }
+    }
+
+    fun onNavigateToRegister() {
+        viewModelScope.launch { _uiEvent.send(LoginUiEvent.NavigateToRegister) }
     }
 }

@@ -10,10 +10,10 @@ android {
 dependencies {
     implementation(project(":core:common"))
     implementation(project(":core:domain"))
-    implementation(project(":core:network"))
     implementation(project(":core:database"))
+    // network vẫn giữ cho UserRepository, bỏ khi chuyển hẳn sang offline
+    implementation(project(":core:network"))
     implementation(libs.coroutines.android)
-    implementation(libs.datastore.preferences)
     testImplementation(libs.junit)
     testImplementation(libs.mockk)
     testImplementation(libs.coroutines.test)

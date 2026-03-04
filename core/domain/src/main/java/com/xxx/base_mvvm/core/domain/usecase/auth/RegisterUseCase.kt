@@ -8,12 +8,16 @@ import com.xxx.base_mvvm.core.domain.usecase.base.SuspendUseCase
 import kotlinx.coroutines.CoroutineDispatcher
 import javax.inject.Inject
 
-data class LoginParams(val email: String, val password: String)
+data class RegisterParams(
+    val name: String,
+    val email: String,
+    val password: String
+)
 
-class LoginUseCase @Inject constructor(
+class RegisterUseCase @Inject constructor(
     private val authRepository: AuthRepository,
     @Dispatcher(AppDispatchers.IO) dispatcher: CoroutineDispatcher
-) : SuspendUseCase<LoginParams, User>(dispatcher) {
-    override suspend fun execute(params: LoginParams): User =
-        authRepository.login(params.email, params.password)
+) : SuspendUseCase<RegisterParams, User>(dispatcher) {
+    override suspend fun execute(params: RegisterParams): User =
+        authRepository.register(params.name, params.email, params.password)
 }

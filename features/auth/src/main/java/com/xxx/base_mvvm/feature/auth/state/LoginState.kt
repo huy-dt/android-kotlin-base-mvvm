@@ -12,6 +12,7 @@ data class LoginUiState(
 }
 
 sealed class LoginUiEvent {
-    object NavigateToHome : LoginUiEvent()
+    object NavigateToHome     : LoginUiEvent()
+    object NavigateToRegister : LoginUiEvent()
     data class ShowSnackbar(val message: String) : LoginUiEvent()
 }

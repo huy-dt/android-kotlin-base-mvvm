@@ -1,50 +1,72 @@
 package com.xxx.base_mvvm.core.data.repository
 
-import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.stringPreferencesKey
-import com.xxx.base_mvvm.core.data.mapper.toDomain
-import com.xxx.base_mvvm.core.domain.model.AuthToken
+import com.xxx.base_mvvm.core.database.dao.AccountDao
 import com.xxx.base_mvvm.core.domain.model.User
 import com.xxx.base_mvvm.core.domain.repository.AuthRepository
-import com.xxx.base_mvvm.core.network.interceptor.TokenProvider
-import com.xxx.base_mvvm.core.network.model.LoginRequestDto
-import com.xxx.base_mvvm.core.network.service.AuthApiService
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import java.security.MessageDigest
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class AuthRepositoryImpl @Inject constructor(
-    private val authApiService: AuthApiService,
-    private val tokenProvider: TokenProvider,   // ← interface, không phụ thuộc OkHttp
-    private val dataStore: DataStore<Preferences>
+    private val accountDao: AccountDao
 ) : AuthRepository {
 
-    companion object {
-        val KEY_ACCESS_TOKEN = stringPreferencesKey("access_token")
+    // ── currentUser ────────────────────────────────────────────────────────────
+    override val currentUser: Flow<User?> =
+        accountDao.getLoggedInAccount().map { it?.toUser() }
+
+    // ── login ──────────────────────────────────────────────────────────────────
+    override suspend fun login(email: String, password: String): User {
+        val account = accountDao.getByEmail(email.trim().lowercase())
+            ?: throw IllegalArgumentException("Email không tồn tại")
+
+        if (account.passwordHash != hashPassword(password))
+            throw IllegalArgumentException("Mật khẩu không đúng")
+
+        accountDao.setLoggedIn(account.email)
+        return account.toUser()
     }
 
-    override val currentUser: Flow<User?> = flowOf(null)
+    // ── register ───────────────────────────────────────────────────────────────
+    override suspend fun register(name: String, email: String, password: String): User {
+        val normalizedEmail = email.trim().lowercase()
 
-    override suspend fun login(email: String, password: String): AuthToken {
-        val dto = authApiService.login(LoginRequestDto(email, password))
-        val token = dto.toDomain()
-        dataStore.edit { it[KEY_ACCESS_TOKEN] = token.accessToken }
-        tokenProvider.setToken(token.accessToken)
-        return token
+        if (accountDao.isEmailTaken(normalizedEmail))
+            throw IllegalArgumentException("Email đã được sử dụng")
+
+        val newAccount = com.xxx.base_mvvm.core.database.entity.AccountEntity(
+            name         = name.trim(),
+            email        = normalizedEmail,
+            passwordHash = hashPassword(password),
+            isLoggedIn   = true
+        )
+        val insertedId = accountDao.insert(newAccount)
+        return newAccount.copy(id = insertedId.toInt()).toUser()
     }
 
+    // ── logout ─────────────────────────────────────────────────────────────────
     override suspend fun logout() {
-        runCatching { authApiService.logout() }
-        dataStore.edit { it.remove(KEY_ACCESS_TOKEN) }
-        tokenProvider.clearToken()
+        accountDao.logoutAll()
     }
 
+    // ── isLoggedIn ─────────────────────────────────────────────────────────────
     override suspend fun isLoggedIn(): Boolean =
-        dataStore.data.map { it[KEY_ACCESS_TOKEN] }.first()?.isNotBlank() == true
+        accountDao.getLoggedInAccountOnce() != null
+
+    // ── helpers ────────────────────────────────────────────────────────────────
+    private fun hashPassword(password: String): String {
+        val digest = MessageDigest.getInstance("SHA-256")
+        val bytes  = digest.digest(password.toByteArray(Charsets.UTF_8))
+        return bytes.joinToString("") { "%02x".format(it) }
+    }
+
+    private fun com.xxx.base_mvvm.core.database.entity.AccountEntity.toUser() = User(
+        id        = id,
+        name      = name,
+        email     = email,
+        createdAt = createdAt
+    )
 }
