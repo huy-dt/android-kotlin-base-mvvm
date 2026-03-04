@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -6,22 +8,56 @@ plugins {
     alias(libs.plugins.hilt)
 }
 
+/**
+ * =====================================================
+ * READ keystore.properties (KHÔNG COMMIT GIT)
+ * =====================================================
+ */
+val localProperties = Properties().apply {
+    val file = rootProject.file("keystore.properties")
+    if (file.exists()) {
+        file.inputStream().use { load(it) }
+        logger.lifecycle("✅ keystore.properties loaded from ${file.absolutePath}")
+    } else {
+        logger.lifecycle("⚠️  keystore.properties NOT FOUND — release signing skipped")
+    }
+}
+
+fun prop(key: String): String? = localProperties.getProperty(key)
+
 android {
     namespace   = "com.xxx.base_mvvm"
     compileSdk  = 35
 
     defaultConfig {
-        applicationId = "com.xxx.base_mvvm"
-        minSdk        = 24
-        targetSdk     = 35
-        versionCode   = 1
-        versionName   = "1.0.0"
+        applicationId         = "com.xxx.base_mvvm"
+        minSdk                = 24
+        targetSdk             = 35
+        versionCode           = 1
+        versionName           = "1.0.0"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    signingConfigs {
+        prop("RELEASE_STORE_FILE")?.let { storePath ->
+            create("release") {
+                storeFile     = rootProject.file(storePath)
+                storePassword = prop("RELEASE_STORE_PASSWORD")
+                keyAlias      = prop("RELEASE_KEY_ALIAS")
+                keyPassword   = prop("RELEASE_KEY_PASSWORD")
+            }
+        }
     }
 
     buildTypes {
         release {
-            isMinifyEnabled = true
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            isMinifyEnabled       = true
+            isShrinkResources     = true
+            signingConfigs.findByName("release")?.let { signingConfig = it }
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
 

@@ -1,10 +1,10 @@
 package com.xxx.base_mvvm.feature.auth.state
 
 data class RegisterUiState(
-    val name: String = "",
-    val email: String = "",
-    val password: String = "",
-    val confirmPassword: String = "",
+    val name: String = "admin",
+    val email: String = "admin@admin.com",
+    val password: String = "123456",
+    val confirmPassword: String = "123456",
     val isLoading: Boolean = false,
     val nameError: String? = null,
     val emailError: String? = null,

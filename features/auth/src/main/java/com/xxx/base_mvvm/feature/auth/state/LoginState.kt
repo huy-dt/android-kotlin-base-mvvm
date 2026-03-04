@@ -1,8 +1,8 @@
 package com.xxx.base_mvvm.feature.auth.state
 
 data class LoginUiState(
-    val email: String = "",
-    val password: String = "",
+    val email: String = "admin@admin.com",
+    val password: String = "123456",
     val isLoading: Boolean = false,
     val emailError: String? = null,
     val passwordError: String? = null,
